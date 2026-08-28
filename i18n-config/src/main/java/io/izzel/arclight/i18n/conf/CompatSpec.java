@@ -38,6 +38,18 @@ public class CompatSpec {
     @Setting("isolate-adventure-from-modloader")
     private boolean isolateAdventureFromModloader;
 
+    @Setting("keepalive-lag-grace")
+    private boolean keepAliveLagGrace = true;
+
+    @Setting("keepalive-timeout-seconds")
+    private int keepAliveTimeoutSeconds = 15;
+
+    @Setting("mod-entity-block-change-events")
+    private boolean modEntityBlockChangeEvents = true;
+
+    @Setting("fake-player-block-events")
+    private boolean fakePlayerBlockEvents = true;
+
     public Map<String, MaterialPropertySpec> getMaterials() {
         return materials;
     }
@@ -89,5 +101,21 @@ public class CompatSpec {
 
     public boolean isAdventureIsolatedFromML() {
         return isolateAdventureFromModloader;
+    }
+
+    public boolean isModEntityBlockChangeEvents() {
+        return modEntityBlockChangeEvents;
+    }
+
+    public boolean isFakePlayerBlockEvents() {
+        return fakePlayerBlockEvents;
+    }
+
+    public boolean isKeepAliveLagGrace() {
+        return keepAliveLagGrace;
+    }
+
+    public long getKeepAliveTimeoutMillis() {
+        return Math.max(5, keepAliveTimeoutSeconds) * 1000L;
     }
 }

@@ -24,8 +24,17 @@ import java.util.List;
 
 public class BlockPlaceEventDispatcher {
 
+    // Деплойеры и схематикannon Create действуют от имени Forge FakePlayer.
+    // Ключ compatibility.fake-player-block-events позволяет не слать по ним
+    // события Bukkit, если плагины на них реагируют неадекватно.
+    private static final boolean FIRE_FAKE_PLAYER_EVENTS =
+        io.izzel.arclight.i18n.ArclightConfig.spec().getCompat().isFakePlayerBlockEvents();
+
     @SubscribeEvent(receiveCanceled = true)
     public void onBlockPlace(BlockEvent.EntityPlaceEvent event) {
+        if (!FIRE_FAKE_PLAYER_EVENTS && event.getEntity() instanceof net.minecraftforge.common.util.FakePlayer) {
+            return;
+        }
         Entity entity = event.getEntity();
         if (entity instanceof ServerPlayerEntityBridge playerEntity) {
             Player player = playerEntity.bridge$getBukkitEntity();
@@ -61,6 +70,9 @@ public class BlockPlaceEventDispatcher {
 
     @SubscribeEvent(receiveCanceled = true)
     public void onMultiPlace(BlockEvent.EntityMultiPlaceEvent event) {
+        if (!FIRE_FAKE_PLAYER_EVENTS && event.getEntity() instanceof net.minecraftforge.common.util.FakePlayer) {
+            return;
+        }
         Entity entity = event.getEntity();
         if (entity instanceof ServerPlayerEntityBridge playerEntity) {
             Player player = playerEntity.bridge$getBukkitEntity();

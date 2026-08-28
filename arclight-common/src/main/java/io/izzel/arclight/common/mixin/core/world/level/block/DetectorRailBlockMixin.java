@@ -1,5 +1,6 @@
 package io.izzel.arclight.common.mixin.core.world.level.block;
 
+import io.izzel.arclight.common.mod.util.HotEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.DetectorRailBlock;
@@ -24,12 +25,16 @@ public class DetectorRailBlockMixin {
     @Inject(method = "checkPressed", locals = LocalCapture.CAPTURE_FAILHARD, at = @At(value = "JUMP", ordinal = 1, opcode = Opcodes.IFEQ))
     public void arclight$blockRedstone(Level worldIn, BlockPos pos, BlockState state, CallbackInfo ci, boolean flag, boolean flag1) {
         if (flag != flag1) {
-            Block block = CraftBlock.at(worldIn, pos);
+            if (HotEvents.redstone()) {
+                Block block = CraftBlock.at(worldIn, pos);
 
-            BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(block, flag ? 15 : 0, flag1 ? 15 : 0);
-            Bukkit.getPluginManager().callEvent(eventRedstone);
+                BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(block, flag ? 15 : 0, flag1 ? 15 : 0);
+                Bukkit.getPluginManager().callEvent(eventRedstone);
 
-            arclight$flag = eventRedstone.getNewCurrent() > 0;
+                arclight$flag = eventRedstone.getNewCurrent() > 0;
+            } else {
+                arclight$flag = flag1;
+            }
         }
     }
 

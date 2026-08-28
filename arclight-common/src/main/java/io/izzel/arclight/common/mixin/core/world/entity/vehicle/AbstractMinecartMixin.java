@@ -3,6 +3,7 @@ package io.izzel.arclight.common.mixin.core.world.entity.vehicle;
 import io.izzel.arclight.common.bridge.core.entity.EntityBridge;
 import io.izzel.arclight.common.bridge.core.world.WorldBridge;
 import io.izzel.arclight.common.mixin.core.world.entity.EntityMixin;
+import io.izzel.arclight.common.mod.util.HotEvents;
 import io.izzel.arclight.mixin.Eject;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.BlockTags;
@@ -134,7 +135,9 @@ public abstract class AbstractMinecartMixin extends EntityMixin implements IForg
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void arclight$storePrevLocation(CallbackInfo ci) {
-        arclight$prevLocation = new Location(null, getX(), getY(), getZ(), getYRot(), getXRot());
+        if (HotEvents.vehicleUpdate() || HotEvents.vehicleMove()) {
+            arclight$prevLocation = new Location(null, getX(), getY(), getZ(), getYRot(), getXRot());
+        }
     }
 
     @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/vehicle/AbstractMinecart;handleNetherPortal()V"))
@@ -144,14 +147,20 @@ public abstract class AbstractMinecartMixin extends EntityMixin implements IForg
 
     @Inject(method = "tick", at = @At(value = "INVOKE", shift = At.Shift.AFTER, target = "Lnet/minecraft/world/entity/vehicle/AbstractMinecart;setRot(FF)V"))
     private void arclight$fireVehicleEvents(CallbackInfo ci) {
-        org.bukkit.World bworld = ((WorldBridge) this.level()).bridge$getWorld();
         Location from = this.arclight$prevLocation;
         this.arclight$prevLocation = null;
+        if (from == null) {
+            // на входе в тик слушателей не было - события пропускаются
+            return;
+        }
+        org.bukkit.World bworld = ((WorldBridge) this.level()).bridge$getWorld();
         from.setWorld(bworld);
         Location to = new Location(bworld, this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
         Vehicle vehicle = (Vehicle) this.getBukkitEntity();
-        Bukkit.getPluginManager().callEvent(new VehicleUpdateEvent(vehicle));
-        if (!from.equals(to)) {
+        if (HotEvents.vehicleUpdate()) {
+            Bukkit.getPluginManager().callEvent(new VehicleUpdateEvent(vehicle));
+        }
+        if (!from.equals(to) && HotEvents.vehicleMove()) {
             Bukkit.getPluginManager().callEvent(new VehicleMoveEvent(vehicle, from, to));
         }
     }

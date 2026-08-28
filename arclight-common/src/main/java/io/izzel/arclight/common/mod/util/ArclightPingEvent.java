@@ -23,9 +23,21 @@ public class ArclightPingEvent extends ServerListPingEvent {
     private final Object[] players;
 
     public ArclightPingEvent(Connection networkManager, MinecraftServer server) {
+        this(networkManager, server, server.getPlayerList().players.toArray());
+    }
+
+    public ArclightPingEvent(Connection networkManager, MinecraftServer server, Object[] players) {
         super(((NetworkManagerBridge) networkManager).bridge$getHostname(), ((InetSocketAddress) networkManager.getRemoteAddress()).getAddress(), server.getMotd(), server.getPlayerList().getMaxPlayers());
         this.icon = ((CraftServer) Bukkit.getServer()).getServerIcon();
-        this.players = server.getPlayerList().players.toArray();
+        this.players = players;
+    }
+
+    /**
+     * Снимок списка игроков этого пинга. Плагины могут скрывать игроков через
+     * iterator().remove() — такие элементы становятся null.
+     */
+    public Object[] getPlayerSnapshot() {
+        return players;
     }
 
     @Override

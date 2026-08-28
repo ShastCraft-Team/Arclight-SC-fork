@@ -5,11 +5,13 @@ import io.izzel.arclight.common.bridge.core.entity.player.PlayerEntityBridge;
 import io.izzel.arclight.common.mixin.core.world.level.block.state.BlockBehaviourMixin;
 import io.izzel.arclight.common.mod.util.ArclightCaptures;
 import io.izzel.arclight.common.mod.util.DistValidate;
+import io.izzel.arclight.common.mod.util.ModEntityBlockChangeHooks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.valueproviders.IntProvider;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -32,8 +34,10 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.List;
 
 @Mixin(Block.class)
@@ -85,6 +89,32 @@ public abstract class BlockMixin extends BlockBehaviourMixin implements BlockBri
     @Override
     public int bridge$getExpDrop(BlockState blockState, ServerLevel world, BlockPos blockPos, ItemStack itemStack) {
         return getExpDrop(blockState, world, blockPos, itemStack, true);
+    }
+
+    // Машины модов (буры и харвестеры Create) собирают лут через getDrops ДО setBlock.
+    // Если EntityChangeBlockEvent запретил изменение — лут и опыт тоже подавляем, иначе
+    // блок останется на месте, а дроп уже выдан: дюп об защищённый регион.
+    @Inject(method = "getDrops(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/entity/BlockEntity;)Ljava/util/List;",
+        cancellable = true, at = @At("HEAD"))
+    private static void arclight$gateModMachineDrops(BlockState state, ServerLevel level, BlockPos pos, BlockEntity blockEntity, CallbackInfoReturnable<List<ItemStack>> cir) {
+        if (!ModEntityBlockChangeHooks.allowDrops(level, pos)) {
+            cir.setReturnValue(Collections.emptyList());
+        }
+    }
+
+    @Inject(method = "getDrops(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/entity/BlockEntity;Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/item/ItemStack;)Ljava/util/List;",
+        cancellable = true, at = @At("HEAD"))
+    private static void arclight$gateModMachineDropsTool(BlockState state, ServerLevel level, BlockPos pos, BlockEntity blockEntity, Entity entity, ItemStack tool, CallbackInfoReturnable<List<ItemStack>> cir) {
+        if (!ModEntityBlockChangeHooks.allowDrops(level, pos)) {
+            cir.setReturnValue(Collections.emptyList());
+        }
+    }
+
+    @Inject(method = "popExperience", cancellable = true, at = @At("HEAD"))
+    private void arclight$gateModMachineExp(ServerLevel level, BlockPos pos, int amount, CallbackInfo ci) {
+        if (!ModEntityBlockChangeHooks.allowDrops(level, pos)) {
+            ci.cancel();
+        }
     }
 
     @Inject(method = "playerDestroy", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Player;causeFoodExhaustion(F)V"))

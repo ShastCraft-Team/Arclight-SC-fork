@@ -1,5 +1,6 @@
 package io.izzel.arclight.common.mixin.core.world.level.block;
 
+import io.izzel.arclight.common.mod.util.HotEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
@@ -19,7 +20,7 @@ public class RedstoneTorchBlockMixin {
     @Inject(method = "tick", cancellable = true, at = @At(value = "INVOKE", ordinal = 0, target = "Lnet/minecraft/server/level/ServerLevel;setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;I)Z"))
     private void arclight$blockRedstone1(BlockState state, ServerLevel worldIn, BlockPos pos, RandomSource rand, CallbackInfo ci) {
         int oldCurrent = state.getValue(RedstoneTorchBlock.LIT) ? 15 : 0;
-        if (oldCurrent != 0) {
+        if (oldCurrent != 0 && HotEvents.redstone()) {
             CraftBlock block = CraftBlock.at(worldIn, pos);
             BlockRedstoneEvent event = new BlockRedstoneEvent(block, oldCurrent, 0);
             Bukkit.getPluginManager().callEvent(event);
@@ -32,7 +33,7 @@ public class RedstoneTorchBlockMixin {
     @Inject(method = "tick", cancellable = true, at = @At(value = "INVOKE", ordinal = 1, target = "Lnet/minecraft/server/level/ServerLevel;setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;I)Z"))
     private void arclight$blockRedstone2(BlockState state, ServerLevel worldIn, BlockPos pos, RandomSource rand, CallbackInfo ci) {
         int oldCurrent = state.getValue(RedstoneTorchBlock.LIT) ? 15 : 0;
-        if (oldCurrent != 15) {
+        if (oldCurrent != 15 && HotEvents.redstone()) {
             CraftBlock block = CraftBlock.at(worldIn, pos);
             BlockRedstoneEvent event = new BlockRedstoneEvent(block, oldCurrent, 15);
             Bukkit.getPluginManager().callEvent(event);

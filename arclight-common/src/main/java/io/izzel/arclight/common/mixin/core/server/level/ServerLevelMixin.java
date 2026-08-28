@@ -8,8 +8,10 @@ import io.izzel.arclight.common.bridge.core.world.ExplosionBridge;
 import io.izzel.arclight.common.bridge.core.world.WorldBridge;
 import io.izzel.arclight.common.bridge.core.world.server.ServerChunkProviderBridge;
 import io.izzel.arclight.common.bridge.core.world.server.ServerWorldBridge;
+import io.izzel.arclight.common.bridge.core.world.level.entity.PersistentEntitySectionManagerBridge;
 import io.izzel.arclight.common.bridge.core.world.storage.DerivedWorldInfoBridge;
 import io.izzel.arclight.common.bridge.core.world.storage.LevelStorageSourceBridge;
+import io.izzel.arclight.common.mod.util.EntityChunkCap;
 import io.izzel.arclight.common.bridge.core.world.storage.MapDataBridge;
 import io.izzel.arclight.common.bridge.core.world.storage.WorldInfoBridge;
 import io.izzel.arclight.common.mixin.core.world.level.LevelMixin;
@@ -37,6 +39,7 @@ import net.minecraft.world.Container;
 import net.minecraft.world.RandomSequences;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.level.CustomSpawner;
 import net.minecraft.world.level.Explosion;
@@ -325,9 +328,33 @@ public abstract class ServerLevelMixin extends LevelMixin implements ServerWorld
     private void arclight$addEntityEvent(Entity entityIn, CallbackInfoReturnable<Boolean> cir) {
         CreatureSpawnEvent.SpawnReason reason = arclight$reason == null ? CreatureSpawnEvent.SpawnReason.DEFAULT : arclight$reason;
         arclight$reason = null;
+        if (arclight$overChunkCap(entityIn, reason)) {
+            cir.setReturnValue(false);
+            return;
+        }
         if (DistValidate.isValid((LevelAccessor) this) && !CraftEventFactory.doEntityAddEventCalling((ServerLevel) (Object) this, entityIn, reason)) {
             cir.setReturnValue(false);
         }
+    }
+
+    /**
+     * Лимит {@code optimization.max-entities-per-chunk}: блокирует спавн, если в чанке уже
+     * достаточно сущностей этого типа. Игроки не ограничиваются никогда, спавн из плагинов
+     * (CUSTOM) и команд - тоже. Проверки идут от дешёвых к дорогим.
+     */
+    private boolean arclight$overChunkCap(Entity entityIn, CreatureSpawnEvent.SpawnReason reason) {
+        if (!EntityChunkCap.ENABLED
+            || entityIn instanceof Player
+            || reason == CreatureSpawnEvent.SpawnReason.CUSTOM
+            || reason == CreatureSpawnEvent.SpawnReason.COMMAND) {
+            return false;
+        }
+        int cap = EntityChunkCap.capFor(entityIn.getType());
+        if (cap < 0) {
+            return false;
+        }
+        return ((PersistentEntitySectionManagerBridge) this.entityManager)
+            .bridge$countEntitiesOfType(entityIn.chunkPosition().toLong(), entityIn.getType()) >= cap;
     }
 
     @Inject(method = "addEntity", at = @At("RETURN"))

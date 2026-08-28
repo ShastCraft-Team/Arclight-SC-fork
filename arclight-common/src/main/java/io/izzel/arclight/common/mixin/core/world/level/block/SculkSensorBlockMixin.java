@@ -1,6 +1,7 @@
 package io.izzel.arclight.common.mixin.core.world.level.block;
 
 import io.izzel.arclight.common.bridge.core.entity.EntityBridge;
+import io.izzel.arclight.common.mod.util.HotEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -37,6 +38,9 @@ public class SculkSensorBlockMixin {
 
     @Inject(method = "deactivate", cancellable = true, at = @At("HEAD"))
     private static void arclight$deactivate(Level level, BlockPos pos, BlockState state, CallbackInfo ci) {
+        if (!HotEvents.redstone()) {
+            return;
+        }
         BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(CraftBlock.at(level, pos), state.getValue(SculkSensorBlock.POWER), 0);
         Bukkit.getPluginManager().callEvent(eventRedstone);
 
@@ -50,6 +54,10 @@ public class SculkSensorBlockMixin {
 
     @Inject(method = "activate", cancellable = true, at = @At("HEAD"))
     private void arclight$activate(Entity p_222126_, Level level, BlockPos pos, BlockState state, int i, int j, CallbackInfo ci) {
+        if (!HotEvents.redstone()) {
+            newCurrent = i;
+            return;
+        }
         BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(CraftBlock.at(level, pos), state.getValue(SculkSensorBlock.POWER), i);
         Bukkit.getPluginManager().callEvent(eventRedstone);
         if (eventRedstone.getNewCurrent() <= 0) {

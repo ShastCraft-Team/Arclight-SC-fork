@@ -1,5 +1,6 @@
 package io.izzel.arclight.common.mixin.core.world.level.block;
 
+import io.izzel.arclight.common.mod.util.HotEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.RedStoneWireBlock;
@@ -23,7 +24,7 @@ public abstract class RedstoneWireBlockMixin {
     public int arclight$blockRedstone(RedStoneWireBlock redstoneWireBlock, Level world, BlockPos pos, Level world1, BlockPos pos1, BlockState state) {
         int i = this.calculateTargetStrength(world, pos);
         int oldPower = state.getValue(RedStoneWireBlock.POWER);
-        if (oldPower != i) {
+        if (oldPower != i && HotEvents.redstone()) {
             BlockRedstoneEvent event = new BlockRedstoneEvent(CraftBlock.at(world, pos), oldPower, i);
             Bukkit.getPluginManager().callEvent(event);
             i = event.getNewCurrent();

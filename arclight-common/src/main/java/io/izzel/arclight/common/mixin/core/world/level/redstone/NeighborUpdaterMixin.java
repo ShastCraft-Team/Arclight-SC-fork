@@ -1,6 +1,7 @@
 package io.izzel.arclight.common.mixin.core.world.level.redstone;
 
 import io.izzel.arclight.common.bridge.core.world.WorldBridge;
+import io.izzel.arclight.common.mod.util.HotEvents;
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
@@ -30,7 +31,7 @@ public interface NeighborUpdaterMixin {
     static void executeUpdate(Level level, BlockState state, BlockPos pos, Block block, BlockPos source, boolean p_230769_) {
         try {
             var cworld = ((WorldBridge) level).bridge$getWorld();
-            if (cworld != null) {
+            if (cworld != null && HotEvents.physics()) {
                 BlockPhysicsEvent event = new BlockPhysicsEvent(CraftBlock.at(level, pos), CraftBlockData.fromData(state), CraftBlock.at(level, source));
                 Bukkit.getPluginManager().callEvent(event);
 

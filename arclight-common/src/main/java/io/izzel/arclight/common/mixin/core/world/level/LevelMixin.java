@@ -8,6 +8,8 @@ import io.izzel.arclight.common.bridge.core.world.server.ServerWorldBridge;
 import io.izzel.arclight.common.mod.server.ArclightServer;
 import io.izzel.arclight.common.mod.server.world.WrappedWorlds;
 import io.izzel.arclight.common.mod.util.ArclightCaptures;
+import io.izzel.arclight.common.mod.util.HotEvents;
+import io.izzel.arclight.common.mod.util.ModEntityBlockChangeHooks;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -148,14 +150,16 @@ public abstract class LevelMixin implements WorldBridge, LevelWriter {
             if (!CraftEventFactory.callEntityChangeBlockEvent(entityChangeBlock, pos, newState)) {
                 return false;
             }
+            return true;
         }
-        return true;
+        // Защита регионов от машин модов: изменения блоков в тике модовой сущности.
+        return ModEntityBlockChangeHooks.allow((Level) (Object) this, this.world, this.populating, pos, newState);
     }
 
     @Inject(method = "markAndNotifyBlock", cancellable = true, at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/state/BlockState;updateNeighbourShapes(Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;II)V"))
     private void arclight$callBlockPhysics(BlockPos pos, LevelChunk chunk, BlockState blockstate, BlockState state, int flags, int recursionLeft, CallbackInfo ci) {
         try {
-            if (this.world != null) {
+            if (this.world != null && HotEvents.physics()) {
                 BlockPhysicsEvent event = new BlockPhysicsEvent(CraftBlock.at((LevelAccessor) this, pos), CraftBlockData.fromData(state));
                 Bukkit.getPluginManager().callEvent(event);
                 if (event.isCancelled()) {

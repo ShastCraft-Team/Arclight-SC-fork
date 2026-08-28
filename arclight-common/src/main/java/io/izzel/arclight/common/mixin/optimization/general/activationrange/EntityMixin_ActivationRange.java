@@ -3,6 +3,7 @@ package io.izzel.arclight.common.mixin.optimization.general.activationrange;
 import io.izzel.arclight.common.bridge.core.world.WorldBridge;
 import io.izzel.arclight.common.bridge.optimization.EntityBridge_ActivationRange;
 import io.izzel.arclight.common.mod.ArclightConstants;
+import io.izzel.arclight.common.mod.util.DabSupport;
 import io.izzel.arclight.common.mod.util.DistValidate;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -30,6 +31,9 @@ public abstract class EntityMixin_ActivationRange implements EntityBridge_Activa
     public boolean defaultActivationState;
     public long activatedTick = Integer.MIN_VALUE;
 
+    public int arclight$dabPriority = 1;
+    public long arclight$dabLastSweep = Integer.MIN_VALUE;
+
     @Inject(method = "<init>", at = @At("RETURN"))
     private void arclight$init(EntityType<?> entityTypeIn, Level worldIn, CallbackInfo ci) {
         activationType = ActivationRange.initializeEntityActivationType((Entity) (Object) this);
@@ -51,6 +55,32 @@ public abstract class EntityMixin_ActivationRange implements EntityBridge_Activa
     @Override
     public void bridge$inactiveTick() {
         this.inactiveTick();
+    }
+
+    @Override
+    public void bridge$dabAccumulate(double distSq) {
+        int prio = DabSupport.priorityFor(distSq);
+        long tick = ArclightConstants.currentTick;
+        if (this.arclight$dabLastSweep != tick) {
+            // первый игрок, увидевший сущность в этом тике - сбрасываем накопленное
+            this.arclight$dabLastSweep = tick;
+            this.arclight$dabPriority = prio;
+        } else if (prio < this.arclight$dabPriority) {
+            this.arclight$dabPriority = prio;
+        }
+    }
+
+    @Override
+    public int bridge$dabPriority() {
+        if (!DabSupport.ENABLED || this.defaultActivationState) {
+            return 1;
+        }
+        if (this.arclight$dabLastSweep < ArclightConstants.currentTick) {
+            // сущность не попала в свип ни одного игрока - она заведомо далеко
+            // (сюда же попадают мобы с иммунитетом активации, например стоящие в воде)
+            return DabSupport.MAX_TICK_FREQ;
+        }
+        return this.arclight$dabPriority;
     }
 
     @Override

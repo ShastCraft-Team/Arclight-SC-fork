@@ -3,6 +3,7 @@ package io.izzel.arclight.common.mixin.core.world.entity.vehicle;
 import io.izzel.arclight.common.bridge.core.entity.EntityBridge;
 import io.izzel.arclight.common.bridge.core.world.WorldBridge;
 import io.izzel.arclight.common.mixin.core.world.entity.EntityMixin;
+import io.izzel.arclight.common.mod.util.HotEvents;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.vehicle.Boat;
@@ -79,11 +80,20 @@ public abstract class BoatMixin extends EntityMixin {
 
     @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/vehicle/Boat;tickBubbleColumn()V"))
     private void arclight$updateVehicle(CallbackInfo ci) {
+        boolean update = HotEvents.vehicleUpdate();
+        boolean move = HotEvents.vehicleMove();
+        if (!update && !move) {
+            // слушателей нет - сбрасываем точку отсчёта, чтобы поздний слушатель не получил скачок
+            this.lastLocation = null;
+            return;
+        }
         final org.bukkit.World bworld = ((WorldBridge) this.level()).bridge$getWorld();
         final Location to = new Location(bworld, this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
         final Vehicle vehicle = (Vehicle) this.getBukkitEntity();
-        Bukkit.getPluginManager().callEvent(new VehicleUpdateEvent(vehicle));
-        if (this.lastLocation != null && !this.lastLocation.equals(to)) {
+        if (update) {
+            Bukkit.getPluginManager().callEvent(new VehicleUpdateEvent(vehicle));
+        }
+        if (move && this.lastLocation != null && !this.lastLocation.equals(to)) {
             final VehicleMoveEvent event = new VehicleMoveEvent(vehicle, this.lastLocation, to);
             Bukkit.getPluginManager().callEvent(event);
         }

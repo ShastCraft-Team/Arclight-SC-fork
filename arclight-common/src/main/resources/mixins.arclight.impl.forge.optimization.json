@@ -9,6 +9,11 @@
   "compatibilityLevel": "JAVA_17",
   "mixins": [
     "ClassInheritanceMultiMapMixin",
+    "ArmorStandMixin_Optimization",
+    "BoundTickingBlockEntityMixin_Optimization",
+    "dab.BrainMixin_DAB",
+    "realtime.PlayerMixin_Realtime",
+    "realtime.PlayerMixin_Realtime$AttackTickerAccessor",
     "EntityDataManagerMixin_Optimize",
     "EntityMixin_Optimize",
     "GoalMixin",

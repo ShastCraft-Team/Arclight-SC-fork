@@ -6,6 +6,7 @@ import io.izzel.arclight.common.bridge.core.entity.player.ServerPlayerEntityBrid
 import io.izzel.arclight.common.bridge.core.world.WorldBridge;
 import io.izzel.arclight.common.mod.util.ArclightCaptures;
 import io.izzel.arclight.common.mod.util.DistValidate;
+import io.izzel.arclight.common.mod.util.HotEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
@@ -106,6 +107,11 @@ public class CraftEventFactoryMixin {
             world.setBlock(target, block, flag);
             return true;
         }
+        // нет слушателей - применяем изменение без события (поведение "не отменено")
+        if (!HotEvents.spread()) {
+            world.setBlock(target, block, flag);
+            return true;
+        }
 
         CraftBlockState state = CraftBlockStates.getBlockState(world, target, flag);
         state.setData(block);
@@ -127,6 +133,11 @@ public class CraftEventFactoryMixin {
     public static boolean handleBlockGrowEvent(Level world, BlockPos pos, net.minecraft.world.level.block.state.BlockState newData, int flag) {
         // Suppress during worldgen
         if (!DistValidate.isValid(world)) {
+            world.setBlock(pos, newData, flag);
+            return true;
+        }
+        // нет слушателей - применяем рост без события (поведение "не отменено")
+        if (!HotEvents.grow()) {
             world.setBlock(pos, newData, flag);
             return true;
         }
@@ -155,6 +166,11 @@ public class CraftEventFactoryMixin {
             world.setBlock(pos, block, flag);
             return true;
         }
+        // нет слушателей - применяем изменение без события (поведение "не отменено")
+        if (!HotEvents.form()) {
+            world.setBlock(pos, block, flag);
+            return true;
+        }
         CraftBlockState blockState = CraftBlockStates.getBlockState(world, pos, flag);
         blockState.setData(block);
 
@@ -174,8 +190,9 @@ public class CraftEventFactoryMixin {
      */
     @Overwrite
     public static BlockFadeEvent callBlockFadeEvent(LevelAccessor world, BlockPos pos, net.minecraft.world.level.block.state.BlockState newBlock) {
-        // Suppress during worldgen
-        if (!(world instanceof Level) || !DistValidate.isValid(world)) {
+        // Suppress during worldgen; тот же дешёвый путь - когда событие никто не слушает
+        // (без снапшота мира и без диспатча; вызыватели видят "не отменено")
+        if (!(world instanceof Level) || !DistValidate.isValid(world) || !HotEvents.fade()) {
             return new BlockFadeEvent(CraftBlock.at(world, pos), CraftBlockStates.getBlockState(CraftMagicNumbers.getMaterial(newBlock.getBlock()), null));
         }
         CraftBlockState state = CraftBlockStates.getBlockState(world, pos);
@@ -224,8 +241,8 @@ public class CraftEventFactoryMixin {
     @Overwrite
     public static BlockRedstoneEvent callRedstoneChange(Level world, BlockPos pos, int oldCurrent, int newCurrent) {
         BlockRedstoneEvent event = new BlockRedstoneEvent(CraftBlock.at(world, pos), oldCurrent, newCurrent);
-        // Suppress during worldgen
-        if (DistValidate.isValid(world)) {
+        // Suppress during worldgen; и не диспатчим, если событие никто не слушает
+        if (DistValidate.isValid(world) && HotEvents.redstone()) {
             Bukkit.getPluginManager().callEvent(event);
         }
         return event;

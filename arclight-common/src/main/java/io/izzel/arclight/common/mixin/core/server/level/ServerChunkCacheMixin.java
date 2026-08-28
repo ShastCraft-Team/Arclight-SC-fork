@@ -5,9 +5,13 @@ import io.izzel.arclight.common.bridge.core.world.server.ChunkHolderBridge;
 import io.izzel.arclight.common.bridge.core.world.server.ChunkMapBridge;
 import io.izzel.arclight.common.bridge.core.world.server.ServerChunkProviderBridge;
 import io.izzel.arclight.common.bridge.core.world.server.TicketManagerBridge;
+import io.izzel.arclight.i18n.ArclightConfig;
 import net.minecraft.server.level.*;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.LocalMobCapCalculator;
+import net.minecraft.world.level.NaturalSpawner;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.storage.LevelData;
@@ -15,6 +19,7 @@ import org.bukkit.entity.SpawnCategory;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
@@ -37,7 +42,28 @@ public abstract class ServerChunkCacheMixin implements ServerChunkProviderBridge
     @Shadow @Nullable protected abstract ChunkHolder getVisibleChunkIfPresent(long chunkPosIn);
     @Invoker("runDistanceManagerUpdates") public abstract boolean bridge$tickDistanceManager();
     @Accessor("lightEngine") public abstract ThreadedLevelLightEngine bridge$getLightManager();
+    @Shadow private NaturalSpawner.SpawnState lastSpawnState;
     // @formatter:on
+
+    @Unique private int arclight$censusTick;
+
+    /**
+     * Перепись мобов (NaturalSpawner.createState) обходит все сущности мира, и для каждой
+     * лезет в карту чанков и в биом за стоимостью спавна. Плотность мобов за один тик
+     * практически не меняется, поэтому пересчитывать её 20 раз в секунду смысла нет.
+     * <p>
+     * Между переписями используется предыдущее состояние. Оно продолжает пополняться через
+     * {@code SpawnState.afterSpawn} по мере спавна, то есть лимиты считаются с запасом в
+     * сторону «мобов уже достаточно» - ошибка всегда консервативная, переспавна не будет.
+     */
+    @Redirect(method = "tickChunks", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/NaturalSpawner;createState(ILjava/lang/Iterable;Lnet/minecraft/world/level/NaturalSpawner$ChunkGetter;Lnet/minecraft/world/level/LocalMobCapCalculator;)Lnet/minecraft/world/level/NaturalSpawner$SpawnState;"))
+    private NaturalSpawner.SpawnState arclight$throttleSpawnCensus(int spawnableChunks, Iterable<Entity> entities, NaturalSpawner.ChunkGetter chunkGetter, LocalMobCapCalculator calculator) {
+        int interval = ArclightConfig.spec().getOptimization().getSpawnCensusInterval();
+        if (interval > 1 && this.lastSpawnState != null && (this.arclight$censusTick++ % interval) != 0) {
+            return this.lastSpawnState;
+        }
+        return NaturalSpawner.createState(spawnableChunks, entities, chunkGetter, calculator);
+    }
 
     public boolean isChunkLoaded(final int chunkX, final int chunkZ) {
         ChunkHolder chunk = ((ChunkMapBridge) this.chunkMap).bridge$chunkHolderAt(ChunkPos.asLong(chunkX, chunkZ));

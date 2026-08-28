@@ -19,8 +19,17 @@ import org.bukkit.event.entity.EntityInteractEvent;
 
 public class BlockBreakEventDispatcher {
 
+    // Деплойеры и схематикannon Create действуют от имени Forge FakePlayer.
+    // Ключ compatibility.fake-player-block-events позволяет не слать по ним
+    // события Bukkit, если плагины на них реагируют неадекватно.
+    private static final boolean FIRE_FAKE_PLAYER_EVENTS =
+        io.izzel.arclight.i18n.ArclightConfig.spec().getCompat().isFakePlayerBlockEvents();
+
     @SubscribeEvent(receiveCanceled = true)
     public void onBreakBlock(BlockEvent.BreakEvent event) {
+        if (!FIRE_FAKE_PLAYER_EVENTS && event.getPlayer() instanceof net.minecraftforge.common.util.FakePlayer) {
+            return;
+        }
         if (DistValidate.isValid(event.getLevel())) {
             CraftBlock craftBlock = CraftBlock.at(event.getLevel(), event.getPos());
             BlockBreakEvent breakEvent = new BlockBreakEvent(craftBlock, ((ServerPlayerEntityBridge) event.getPlayer()).bridge$getBukkitEntity());

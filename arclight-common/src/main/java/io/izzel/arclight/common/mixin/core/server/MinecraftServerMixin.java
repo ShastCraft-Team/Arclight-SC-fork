@@ -6,6 +6,7 @@ import io.izzel.arclight.common.bridge.core.command.ICommandSourceBridge;
 import io.izzel.arclight.common.bridge.core.server.MinecraftServerBridge;
 import io.izzel.arclight.common.bridge.core.world.WorldBridge;
 import io.izzel.arclight.common.mod.ArclightConstants;
+import io.izzel.arclight.common.mod.util.TickClock;
 import io.izzel.arclight.common.mod.server.BukkitRegistry;
 import io.izzel.arclight.common.mod.util.ArclightCaptures;
 import io.izzel.arclight.common.mod.util.BukkitOptionParser;
@@ -237,6 +238,8 @@ public abstract class MinecraftServerMixin extends ReentrantBlockableEventLoop<T
                 }
 
                 currentTick = (int) (System.currentTimeMillis() / 50);
+                // измеряем реальную длительность тика для компенсации лага
+                TickClock.onTickStart();
 
                 if (this.debugCommandProfilerDelayStart) {
                     this.debugCommandProfilerDelayStart = false;

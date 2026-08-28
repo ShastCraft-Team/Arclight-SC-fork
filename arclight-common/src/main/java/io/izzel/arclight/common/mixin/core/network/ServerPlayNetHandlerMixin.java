@@ -15,6 +15,8 @@ import io.izzel.arclight.common.bridge.core.world.WorldBridge;
 import io.izzel.arclight.common.mod.ArclightConstants;
 import io.izzel.arclight.common.mod.server.ArclightServer;
 import io.izzel.arclight.common.mod.util.ArclightCaptures;
+import io.izzel.arclight.common.mod.util.TickClock;
+import io.izzel.arclight.i18n.ArclightConfig;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import net.minecraft.ChatFormatting;
 import net.minecraft.advancements.CriteriaTriggers;
@@ -164,6 +166,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -410,7 +413,7 @@ public abstract class ServerPlayNetHandlerMixin implements ServerPlayNetHandlerB
                 d9 = d6 - entity.getZ();
                 d11 = d7 * d7 + d8 * d8 + d9 * d9;
                 boolean flag2 = false;
-                if (d11 > SpigotConfig.movedWronglyThreshold) {
+                if (!arclight$laggingBehind() && d11 > SpigotConfig.movedWronglyThreshold) {
                     flag2 = true;
                     LOGGER.warn("{} (vehicle of {}) moved wrongly! {}", entity.getName().getString(), this.player.getName().getString(), Math.sqrt(d11));
                 }
@@ -672,7 +675,7 @@ public abstract class ServerPlayNetHandlerMixin implements ServerPlayNetHandlerB
                             d11 = d7 * d7 + d8 * d8 + d9 * d9;
                             boolean flag1 = false;
 
-                            if (!this.player.isChangingDimension() && d11 > org.spigotmc.SpigotConfig.movedWronglyThreshold && !this.player.isSleeping() && !this.player.gameMode.isCreative() && this.player.gameMode.getGameModeForPlayer() != GameType.SPECTATOR) { // Spigot
+                            if (!arclight$laggingBehind() && !this.player.isChangingDimension() && d11 > org.spigotmc.SpigotConfig.movedWronglyThreshold && !this.player.isSleeping() && !this.player.gameMode.isCreative() && this.player.gameMode.getGameModeForPlayer() != GameType.SPECTATOR) { // Spigot
                                 flag1 = true;
                                 LOGGER.warn("{} moved wrongly!", this.player.getName().getString());
                             }
@@ -1382,6 +1385,30 @@ public abstract class ServerPlayNetHandlerMixin implements ServerPlayNetHandlerB
     }
 
     /**
+     * Умеет ли меню отдать слот с этим номером. Моды держат часть слотов вне ванильного
+     * списка и переопределяют {@code getSlot} — например, вкладки улучшений Sophisticated
+     * Backpacks. У таких меню номер слота законно выходит за {@code slots.size()}.
+     */
+    /**
+     * Сервер сам стоял? Тогда накопленное движение игрока выглядит как рассинхрон,
+     * и откатывать его назад за чужую вину нельзя.
+     */
+    @Unique
+    private boolean arclight$laggingBehind() {
+        var spec = ArclightConfig.spec().getOptimization().getLagCompensation();
+        return spec.isMovement() && TickClock.stalling(spec.getMovementStallThresholdMs());
+    }
+
+    @Unique
+    private boolean arclight$menuResolvesSlot(int slotNum) {
+        try {
+            return this.player.containerMenu.getSlot(slotNum) != null;
+        } catch (IndexOutOfBoundsException e) {
+            return false;
+        }
+    }
+
+    /**
      * @author IzzelAliz
      * @reason
      */
@@ -1404,6 +1431,12 @@ public abstract class ServerPlayNetHandlerMixin implements ServerPlayNetHandlerB
                 this.player.containerMenu.suppressRemoteUpdates();
                 // CraftBukkit start - Call InventoryClickEvent
                 if (packet.getSlotNum() < -1 && packet.getSlotNum() != -999) {
+                    return;
+                }
+                if (packet.getSlotNum() >= this.player.containerMenu.slots.size()
+                    && !arclight$menuResolvesSlot(packet.getSlotNum())) {
+                    // Рассинхрон меню на клиенте (модовые GUI): пересинхронизируем вместо выхода за границы
+                    this.player.containerMenu.sendAllDataToRemote();
                     return;
                 }
 

@@ -1,6 +1,7 @@
 package io.izzel.arclight.common.mixin.core.world.level.block;
 
 import io.izzel.arclight.common.mod.util.DistValidate;
+import io.izzel.arclight.common.mod.util.HotEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySelector;
@@ -31,7 +32,7 @@ public abstract class BasePressurePlateBlockMixin {
         boolean flag = oldRedstoneStrength > 0;
         boolean flag1 = newStrength > 0;
 
-        if (flag != flag1 && DistValidate.isValid(world)) {
+        if (flag != flag1 && DistValidate.isValid(world) && HotEvents.redstone()) {
             BlockRedstoneEvent event = new BlockRedstoneEvent(CraftBlock.at(worldIn, blockPos), oldRedstoneStrength, newStrength);
             Bukkit.getPluginManager().callEvent(event);
             newStrength = event.getNewCurrent();

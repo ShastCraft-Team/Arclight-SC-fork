@@ -138,9 +138,8 @@ public abstract class BaseSpawnerMixin {
                             }
                             continue;
                         }
-                        if (CraftEventFactory.callSpawnerSpawnEvent(entity, pos).isCancelled()) {
-                            continue;
-                        }
+                        // Событие уже отправлено выше, вместе с очисткой транспорта и пассажиров.
+                        // Апстрим шлёт SpawnerSpawnEvent дважды на один спавн.
                         ((ServerWorldBridge) level).bridge$pushAddEntityReason(CreatureSpawnEvent.SpawnReason.SPAWNER);
                         if (!level.tryAddFreshEntityWithPassengers(entity)) {
                             this.delay(level, pos);
