@@ -6,3 +6,6 @@ build/
 /.settings/
 .idea
 *.log
+
+# IntelliJ module files, генерируются задачей :idea
+*.iml
