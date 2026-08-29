@@ -92,7 +92,14 @@ dependencies {
 
 jar {
     manifest.attributes 'Main-Class': 'io.izzel.arclight.server.Launcher'
-    manifest.attributes 'Implementation-Title': 'Arclight'
+    manifest.attributes 'Implementation-Title': 'ShastCraft'
+    manifest.attributes 'SC-MC': minecraftVersion
+    manifest.attributes 'SC-Loader': 'Forge'
+    manifest.attributes 'SC-Loader-Version': forgeVersion
+    // authlib-injector без флага -javaagent: JVM сама вызовет agentmain из манифеста
+    manifest.attributes 'Launcher-Agent-Class': 'io.izzel.arclight.server.AuthlibAgent'
+    manifest.attributes 'Can-Retransform-Classes': 'true'
+    manifest.attributes 'Can-Redefine-Classes': 'true'
     manifest.attributes 'Implementation-Version': "arclight-$minecraftVersion-${project.version}-$gitHash"
     manifest.attributes 'Implementation-Vendor': 'Arclight Team'
     manifest.attributes 'Implementation-Timestamp': new Date().format("yyyy-MM-dd HH:mm:ss")

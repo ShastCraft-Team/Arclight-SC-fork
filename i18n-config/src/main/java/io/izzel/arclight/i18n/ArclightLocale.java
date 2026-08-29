@@ -100,6 +100,13 @@ public class ArclightLocale {
         return () -> new BufferedReader(new InputStreamReader(ArclightLocale.class.getResourceAsStream("/META-INF/i18n/" + path + ".conf"), StandardCharsets.UTF_8));
     }
 
+    /**
+     * Запасной язык по умолчанию — {@code en_us}, а не апстримный {@code zh_cn}.
+     * Значение из упакованного arclight.conf сюда не доходит: файла в рабочем каталоге
+     * при первом старте ещё нет, а комментарии подставляются один раз и потом не
+     * перезаписываются. С zh_cn первый же сгенерированный конфиг выходил почти
+     * целиком на иероглифах и таким оставался навсегда.
+     */
     private static Map.Entry<String, String> getLocale() {
         try {
             Path path = Paths.get("arclight.conf");
@@ -109,11 +116,11 @@ public class ArclightLocale {
                 CommentedConfigurationNode node = HoconConfigurationLoader.builder().setPath(path).build().load();
                 CommentedConfigurationNode locale = node.getNode("locale");
                 String current = locale.getNode("current").getString(currentLocale());
-                String fallback = locale.getNode("fallback").getString("zh_cn");
+                String fallback = locale.getNode("fallback").getString("en_us");
                 return new AbstractMap.SimpleImmutableEntry<>(current, fallback);
             }
         } catch (Throwable t) {
-            return new AbstractMap.SimpleImmutableEntry<>(currentLocale(), "zh_cn");
+            return new AbstractMap.SimpleImmutableEntry<>(currentLocale(), "en_us");
         }
     }
 

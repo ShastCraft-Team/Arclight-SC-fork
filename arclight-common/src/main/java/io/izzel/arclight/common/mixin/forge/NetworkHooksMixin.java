@@ -1,6 +1,7 @@
 package io.izzel.arclight.common.mixin.forge;
 
 import io.izzel.arclight.common.bridge.core.inventory.container.ContainerBridge;
+import io.izzel.arclight.common.bridge.core.world.WorldBridge;
 import io.izzel.arclight.common.mod.util.ArclightCaptures;
 import net.minecraft.network.Connection;
 import net.minecraft.network.FriendlyByteBuf;
@@ -9,6 +10,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.network.NetworkHooks;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.v.event.CraftEventFactory;
@@ -29,6 +31,14 @@ public class NetworkHooksMixin {
     private static void arclight$openContainer(ServerPlayer player, MenuProvider containerSupplier, Consumer<FriendlyByteBuf> extraDataWriter, CallbackInfo ci,
                                                int currentId, FriendlyByteBuf extraData, FriendlyByteBuf output, AbstractContainerMenu container) {
         ((ContainerBridge) container).bridge$setTitle(containerSupplier.getDisplayName());
+        // Модовые меню не имеют ванильного поля access, поэтому PosContainerBridge для них
+        // не работает и getLocation() отдавал бы null. Провайдер меню почти всегда сам
+        // block entity — запоминаем его позицию, пока она известна.
+        if (containerSupplier instanceof BlockEntity be && be.getLevel() != null) {
+            ((ContainerBridge) container).bridge$setOpenLocation(
+                new org.bukkit.Location(((WorldBridge) be.getLevel()).bridge$getWorld(),
+                    be.getBlockPos().getX(), be.getBlockPos().getY(), be.getBlockPos().getZ()));
+        }
         ArclightCaptures.captureContainerOwner(player);
         container = CraftEventFactory.callInventoryOpenEvent(player, container);
         ArclightCaptures.resetContainerOwner();

@@ -59,11 +59,23 @@
             </Policies>
             <DefaultRolloverStrategy max="5" fileIndex="min"/>
         </RollingRandomAccessFile>
+        <!-- Отдельный файл только с проблемами: на большой сборке latest.log слишком
+             шумный, чтобы замечать в нём новые предупреждения. Подключён внутрь Async,
+             поэтому запись на диск не блокирует серверный поток. -->
+        <RollingRandomAccessFile name="ProblemsFile" fileName="logs/problems.log" filePattern="logs/problems-%i.log.gz">
+            <PatternLayout pattern="[%d{ddMMMyyyy HH:mm:ss.SSS}] [%t/%level] [%logger/%markerSimpleName]: %minecraftFormatting{%msg{nolookup}}{strip}%n%tEx"/>
+            <Policies>
+                <OnStartupTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="200MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="5" fileIndex="min"/>
+        </RollingRandomAccessFile>
         <Async name="Async">
             <AppenderRef ref="Console" level="${sys:forge.logging.console.level:-info}"/>
             <AppenderRef ref="ServerGuiConsole" level="${sys:forge.logging.console.level:-info}"/>
             <AppenderRef ref="File" level="${sys:forge.logging.file.level:-info}"/>
             <AppenderRef ref="DebugFile" level="${sys:forge.logging.debugFile.level:-debug}"/>
+            <AppenderRef ref="ProblemsFile" level="${sys:arclight.logging.problemsFile.level:-warn}"/>
         </Async>
     </Appenders>
     <Loggers>

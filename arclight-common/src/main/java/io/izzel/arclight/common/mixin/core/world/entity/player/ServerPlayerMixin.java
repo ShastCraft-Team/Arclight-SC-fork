@@ -67,6 +67,7 @@ import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.BiomeManager;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.NetherPortalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.border.WorldBorder;
@@ -733,6 +734,14 @@ public abstract class ServerPlayerMixin extends PlayerMixin implements ServerPla
     private void arclight$invOpen(MenuProvider itileinventory, CallbackInfoReturnable<OptionalInt> cir, AbstractContainerMenu container) {
         if (container != null) {
             ((ContainerBridge) container).bridge$setTitle(itileinventory.getDisplayName());
+            // Модовые меню не имеют ванильного поля access, поэтому PosContainerBridge для них
+            // не работает и getLocation() отдавал бы null. Провайдер меню почти всегда сам
+            // block entity — запоминаем его позицию, пока она известна.
+            if (itileinventory instanceof BlockEntity be && be.getLevel() != null) {
+                ((ContainerBridge) container).bridge$setOpenLocation(
+                    new org.bukkit.Location(((WorldBridge) be.getLevel()).bridge$getWorld(),
+                        be.getBlockPos().getX(), be.getBlockPos().getY(), be.getBlockPos().getZ()));
+            }
             boolean cancelled = false;
             ArclightCaptures.captureContainerOwner((ServerPlayer) (Object) this);
             container = CraftEventFactory.callInventoryOpenEvent((ServerPlayer) (Object) this, container, cancelled);
