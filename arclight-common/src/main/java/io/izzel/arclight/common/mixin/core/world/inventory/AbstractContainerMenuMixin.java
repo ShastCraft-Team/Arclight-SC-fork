@@ -20,6 +20,7 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.registries.ForgeRegistries;
+import org.bukkit.Location;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.v.entity.CraftHumanEntity;
 import org.bukkit.craftbukkit.v.inventory.CraftInventory;
@@ -33,6 +34,7 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -405,5 +407,18 @@ public abstract class AbstractContainerMenuMixin implements ContainerBridge {
     @Override
     public void bridge$setTitle(Component title) {
         setTitle(title);
+    }
+
+    @Unique
+    private Location arclight$openLocation;
+
+    @Override
+    public Location bridge$getOpenLocation() {
+        return this.arclight$openLocation;
+    }
+
+    @Override
+    public void bridge$setOpenLocation(Location location) {
+        this.arclight$openLocation = location;
     }
 }

@@ -9,3 +9,6 @@ build/
 
 # IntelliJ module files, генерируются задачей :idea
 *.iml
+
+# входные данные для gh release, не часть кода
+RELEASE_NOTES.md

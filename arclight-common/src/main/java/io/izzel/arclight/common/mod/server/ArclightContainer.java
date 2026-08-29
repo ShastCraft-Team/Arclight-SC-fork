@@ -2,6 +2,7 @@ package io.izzel.arclight.common.mod.server;
 
 import io.izzel.arclight.common.bridge.core.entity.player.PlayerEntityBridge;
 import io.izzel.arclight.common.bridge.core.inventory.IInventoryBridge;
+import io.izzel.arclight.common.bridge.core.inventory.container.ContainerBridge;
 import io.izzel.arclight.common.bridge.core.inventory.container.PosContainerBridge;
 import io.izzel.arclight.common.mod.util.ArclightCaptures;
 import net.minecraft.world.Container;
@@ -156,6 +157,11 @@ public class ArclightContainer {
         public Location getLocation() {
             if (container instanceof PosContainerBridge) {
                 return ((PosContainerBridge) container).bridge$getWorldLocation();
+            }
+            // Модовые меню: позиция, запомненная при открытии (см. ContainerBridge).
+            Location captured = ((ContainerBridge) container).bridge$getOpenLocation();
+            if (captured != null) {
+                return captured;
             }
             return null;
         }
