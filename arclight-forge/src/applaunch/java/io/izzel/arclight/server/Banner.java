@@ -83,6 +83,8 @@ final class Banner {
         String version = shortenVersion(value(attr, "Implementation-Version"), mc);
         String loader = value(attr, "SC-Loader");
         String loaderVersion = value(attr, "SC-Loader-Version");
+        // дата сборки: раньше её показывал логотип Arclight, теперь её больше негде взять
+        String built = value(attr, "Implementation-Timestamp");
 
         long maxHeapMb = Runtime.getRuntime().maxMemory() / (1024 * 1024);
         String java = System.getProperty("java.version") + " (" + System.getProperty("java.vendor") + ")";
@@ -102,7 +104,7 @@ final class Banner {
         sb.append(sep).append('\n');
         sb.append("  ").append(field("Version", version)).append(field("Minecraft", mc)).append('\n');
         sb.append("  ").append(field(loaderLabel, loaderVersion)).append(field("Max heap", maxHeapMb + " MB")).append('\n');
-        sb.append("  ").append(field("Java", java)).append('\n');
+        sb.append("  ").append(field("Java", java)).append(field("Built", built)).append('\n');
         sb.append("  ").append(field("OS", os)).append(field("Started", started)).append('\n');
         sb.append(sep).append('\n');
         System.out.println(sb);

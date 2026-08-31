@@ -4,9 +4,7 @@ import com.google.gson.internal.bind.TypeAdapters;
 import com.google.gson.reflect.TypeToken;
 import io.izzel.arclight.api.ArclightVersion;
 import io.izzel.arclight.api.Unsafe;
-import io.izzel.arclight.i18n.ArclightLocale;
 import net.minecraftforge.forgespi.locating.IModLocator;
-import org.apache.logging.log4j.LogManager;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -88,17 +86,20 @@ public class AbstractBootstrap {
         }
     }
 
+    /**
+     * Стартовый ASCII-логотип Arclight отсюда убран: свой баннер печатает
+     * {@code io.izzel.arclight.server.Banner} на этапе applaunch, и два баннера подряд
+     * не нужны. Версия и дата сборки, которые показывал логотип, есть в нашем.
+     * Записи {@code logo} и {@code release-name} в файлах локализации {@code META-INF/i18n}
+     * оставлены намеренно: их удаление дало бы конфликты при слиянии с апстримом и больше ничего.
+     */
     protected void setupMod() throws Exception {
         ArclightVersion.setVersion(ArclightVersion.TRIALS);
-        var logger = LogManager.getLogger("Arclight");
         try (InputStream stream = getClass().getModule().getResourceAsStream("/META-INF/MANIFEST.MF")) {
             Manifest manifest = new Manifest(stream);
             Attributes attributes = manifest.getMainAttributes();
             String version = attributes.getValue(Attributes.Name.IMPLEMENTATION_VERSION);
             extract(getClass().getModule().getResourceAsStream("/common.jar"), version);
-            String buildTime = attributes.getValue("Implementation-Timestamp");
-            logger.info(ArclightLocale.getInstance().get("logo"),
-                ArclightLocale.getInstance().get("release-name." + ArclightVersion.current().getReleaseName()), version, buildTime);
         }
     }
 
